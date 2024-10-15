@@ -1,0 +1,44 @@
+import sqlite3
+import bcrypt
+import re
+
+def get_user_data(user_id):
+    conn = sqlite3.connect('users.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    return cursor.fetchall()
+
+def get_stored_password(username):
+    # This function should retrieve the stored hashed password from the database
+    conn = sqlite3.connect('users.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT password FROM users WHERE username = ?", (username,))
+    result = cursor.fetchone()
+    return result[0] if result else None
+
+def authenticate_user(username, password):
+    stored_hashed_password = get_stored_password(username)
+    if stored_hashed_password and bcrypt.checkpw(password.encode('utf-8'), stored_hashed_password.encode('utf-8')):
+        return True
+    return False
+
+def save_user_data(username, email):
+    # Validate email format
+    if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+        raise ValueError("Invalid email format")
+    conn = sqlite3.connect('users.db')
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO users (username, email) VALUES (?, ?);", (username, email))
+    conn.commit()
+
+# Example usage
+user_id = input("Enter user ID: ")
+print(get_user_data(user_id))
+
+username = input("Enter username: ")
+password = input("Enter password: ")
+print(authenticate_user(username, password))
+
+new_username = input("Enter new username: ")
+new_email = input("Enter email: ")
+save_user_data(new_username, new_email)
