@@ -1,0 +1,55 @@
+#codeAlpha 
+import sqlite3
+from scapy.all import sniff, TCP, IP
+
+# Set up SQLite database
+def setup_database():
+    conn = sqlite3.connect('nids_logs.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS alerts (
+            id INTEGER PRIMARY KEY,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            src_ip TEXT,
+            dst_ip TEXT,
+            src_port INTEGER,
+            dst_port INTEGER,
+            protocol TEXT,
+            info TEXT
+        )
+    ''')
+    conn.commit()
+    return conn
+
+# Function to process packets
+def process_packet(packet):
+    if IP in packet and TCP in packet:
+        ip_layer = packet[IP]
+        tcp_layer = packet[TCP]
+        
+        # Detect HTTP traffic
+        if tcp_layer.dport == 80 or tcp_layer.dport == 443:
+            alert_info = f"HTTP Traffic Detected: {ip_layer.src}:{tcp_layer.sport} -> {ip_layer.dst}:{tcp_layer.dport}"
+            print(alert_info)
+            log_alert(conn, ip_layer.src, ip_layer.dst, tcp_layer.sport, tcp_layer.dport, "TCP", alert_info)
+
+# Log alert into the database
+def log_alert(conn, src_ip, dst_ip, src_port, dst_port, protocol, info):
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO alerts (src_ip, dst_ip, src_port, dst_port, protocol, info)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (src_ip, dst_ip, src_port, dst_port, protocol, info))
+    conn.commit()
+
+# Main function to start sniffing
+def main():
+    global conn
+    conn = setup_database()
+    
+    print("Starting packet sniffing...")
+    # Sniff packets and process them with the process_packet function
+    sniff(prn=process_packet, filter="tcp", store=0)
+
+if __name__ == "__main__":
+    main()
