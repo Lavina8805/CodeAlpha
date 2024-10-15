@@ -1,0 +1,34 @@
+import requests
+import uuid
+
+# Replace with your Azure Translator API endpoint and key
+subscription_key = 'YOUR_SUBSCRIPTION_KEY'
+endpoint = 'YOUR_ENDPOINT_URL'
+
+# Set the endpoint for the Translator API
+path = '/translate?api-version=3.0'
+params = '&from=en&to=es'  # Change 'en' (English) and 'es' (Spanish) as needed
+url = endpoint + path + params
+
+# The text to be translated
+text_to_translate = "Hello, how are you?"
+
+# Prepare the request body
+body = [{
+    'text': text_to_translate
+}]
+
+# Set the request headers
+headers = {
+    'Ocp-Apim-Subscription-Key': subscription_key,
+    'Content-Type': 'application/json',
+    'Ocp-Apim-Subscription-Region': 'YOUR_RESOURCE_REGION'  # Optional
+}
+
+# Make the API request
+response = requests.post(url, headers=headers, json=body)
+response.raise_for_status()  # Raise an error for bad responses
+
+# Get the translation result
+translation = response.json()[0]['translations'][0]['text']
+print(f'Translated text: {translation}')
