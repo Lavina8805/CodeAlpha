@@ -1,0 +1,35 @@
+import os
+import numpy as np
+import pretty_midi
+
+# Load MIDI files
+def load_midi_files(midi_folder):
+    notes = []
+    for file in os.listdir(midi_folder):
+        if file.endswith(".mid"):
+            midi = pretty_midi.PrettyMIDI(os.path.join(midi_folder, file))
+            for instrument in midi.instruments:
+                if not instrument.is_drum:
+                    notes += [note.pitch for note in instrument.notes]
+    return notes
+
+midi_folder = 'midi_files'  # Your folder with MIDI files
+notes = load_midi_files(midi_folder)
+
+# Create a unique set of notes
+unique_notes = sorted(set(notes))
+note_to_int = {note: number for number, note in enumerate(unique_notes)}
+int_to_note = {number: note for number, note in enumerate(unique_notes)}
+
+# Prepare sequences
+sequence_length = 100
+X = []
+y = []
+
+for i in range(len(notes) - sequence_length):
+    X.append([note_to_int[note] for note in notes[i:i + sequence_length]])
+    y.append(note_to_int[notes[i + sequence_length]])
+
+X = np.reshape(X, (len(X), sequence_length, 1))
+X = X / float(len(unique_notes))  # Normalize
+y = np.utils.to_categorical(y, num_classes=len(unique_notes))
